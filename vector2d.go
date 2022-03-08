@@ -6,7 +6,6 @@ type Vector2d struct {
 	x, y float64
 }
 
-
 func (v1 Vector2d) Add(v2 Vector2d) Vector2d {
 	return Vector2d{
 		x: v1.x + v2.x,

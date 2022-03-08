@@ -1,28 +1,28 @@
 package main
 
 import (
-	"log"
-	"image/color"
 	"github.com/hajimehoshi/ebiten/v2"
+	"image/color"
+	"log"
 )
 
 const (
 	screenWidth, screenHeight = 640, 360
-	boidCount = 500
-	viewRadius = 1
-	adjRate = 0.015
+	boidCount                 = 500
+	viewRadius                = 13
+	adjRate                   = 0.015
 )
 
 var (
-	green = color.RGBA{0, 255, 50, 255}
-	boids = [boidCount]*Boid{}
+	green   = color.RGBA{0, 255, 50, 255}
+	boids   = [boidCount]*Boid{}
 	boidMap = [screenWidth + 1][screenHeight + 1]int{}
 )
 
-type Game struct {}
+type Game struct{}
 
-func (g *Game) Update() error{
-	return nil	
+func (g *Game) Update() error {
+	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -39,7 +39,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.Set(int(boid.position.x), int(boid.position.y)-1, green)
 	}
 }
-
 
 func (g *Game) Layout(_, _ int) (int, int) {
 	return screenWidth, screenHeight
