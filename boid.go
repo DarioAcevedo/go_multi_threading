@@ -14,40 +14,69 @@ type Boid struct {
 
 // Take into account the view radius to calculate
 //the average change on velocity our boid will have
-func CalcAcceleration(boid *Boid) Vector2d {
+func (boid *Boid) CalcAcceleration() Vector2d {
 	upper, lower := boid.position.AddValue(viewRadius), boid.position.AddValue(-viewRadius)
-	averageVelocity := Vector2d{x: 0, y: 0}
-	count := 0
+	averagePosition, averageVelocity, separation := Vector2d{}, Vector2d{}, Vector2d{}
+	count := 0.0
+	lock.RLock()
 	for x := math.Max(lower.x, 0); x <= math.Min(upper.x, screenWidth); x++ {
 		for y := math.Max(lower.y, 0); y <= math.Min(upper.y, screenHeight); y++ {
 			if i := boidMap[int(x)][int(y)]; i != -1 && i != boid.id {
 				otherBoid := boids[i]
-				if otherBoid.position.Distance(boid.position) <= viewRadius {
-					count += 1
+				if dist := otherBoid.position.Distance(boid.position); dist < viewRadius {
+					count++
 					averageVelocity = averageVelocity.Add(otherBoid.velocity)
+					averagePosition = averagePosition.Add(otherBoid.position)
+					positionDifference := boid.position.Substract(otherBoid.position).DivValue(dist)
+					separation = separation.Add(positionDifference)
+
 				}
 			}
 		}
 	}
-	if count > 0 {
-		averageVelocity = averageVelocity.DivValue(float64(count))
-		return averageVelocity.Substract(boid.velocity).MultValue(adjRate)
+
+	lock.RUnlock()
+
+	accel := Vector2d{
+		x: boid.borderBounce(boid.position.x, screenWidth),
+		y: boid.borderBounce(boid.position.y, screenHeight),
 	}
-	return averageVelocity
+
+	if count > 0 {
+		averageVelocity = averageVelocity.DivValue(count)
+		averagePosition = averagePosition.DivValue(count)
+
+		alignAccel := averageVelocity.Substract(boid.velocity).MultValue(adjRate)
+		cohesionAccel := averagePosition.Substract(boid.position).MultValue(adjRate)
+		separationAccel := separation.MultValue(adjRate)
+
+		return accel.Add(alignAccel).Add(cohesionAccel).Add(separationAccel)
+	}
+
+	return accel
+}
+
+func (b *Boid) borderBounce(p, mBp float64) float64 {
+	if p < viewRadius {
+		return 1 / p
+	} else if p > mBp-viewRadius {
+		return 1 / (p - mBp)
+	}
+
+	return 0
 }
 
 func (b *Boid) update() {
+	acceleration := b.CalcAcceleration()
+
+	lock.Lock()
+
+	b.velocity = b.velocity.Add(acceleration).limit(-1, 1)
 	boidMap[int(b.position.x)][int(b.position.y)] = -1
-	b.velocity = b.velocity.Add(CalcAcceleration(b))
 	b.position = b.position.Add(b.velocity)
 	boidMap[int(b.position.x)][int(b.position.y)] = b.id
-	next := b.position.Add(b.velocity)
-	if next.x > screenWidth || next.x < 0 {
-		b.velocity.x = -b.velocity.x
-	}
-	if next.y > screenHeight || next.y < 0 {
-		b.velocity.y = -b.velocity.y
-	}
+
+	lock.Unlock()
 }
 
 func (b *Boid) start() {

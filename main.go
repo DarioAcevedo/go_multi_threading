@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
 	"image/color"
 	"log"
+	"sync"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const (
@@ -17,6 +19,7 @@ var (
 	green   = color.RGBA{0, 255, 50, 255}
 	boids   = [boidCount]*Boid{}
 	boidMap = [screenWidth + 1][screenHeight + 1]int{}
+	lock    = sync.RWMutex{}
 )
 
 type Game struct{}
@@ -26,11 +29,6 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	for i, row := range boidMap {
-		for j := range row {
-			boidMap[i][j] = -1
-		}
-	}
 	for _, boid := range boids {
 		screen.Set(int(boid.position.x), int(boid.position.y), green)
 		screen.Set(int(boid.position.x)+1, int(boid.position.y), green)
@@ -45,6 +43,11 @@ func (g *Game) Layout(_, _ int) (int, int) {
 }
 
 func main() {
+	for i, row := range boidMap {
+		for j := range row {
+			boidMap[i][j] = -1
+		}
+	}
 	for i := 0; i < boidCount; i++ {
 		CreateBoid(i)
 	}
